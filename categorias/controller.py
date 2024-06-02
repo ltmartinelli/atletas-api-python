@@ -1,6 +1,8 @@
 from uuid import uuid4
 from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import UUID4
+from sqlalchemy.exc import IntegrityError
+
 from categorias.schemas import CategoriaIn, CategoriaOut
 from categorias.models import CategoriaModel
 
@@ -20,11 +22,17 @@ async def post(
         db_session: DatabaseDependency,
         categoria_in: CategoriaIn = Body(...)
 ) -> CategoriaOut:
-    categoria_out = CategoriaOut(id=uuid4(), **categoria_in.model_dump())
-    categoria_model = CategoriaModel(**categoria_out.model_dump())
+    try:
+        categoria_out = CategoriaOut(id=uuid4(), **categoria_in.model_dump())
+        categoria_model = CategoriaModel(**categoria_out.model_dump())
 
-    db_session.add(categoria_model)
-    await db_session.commit()
+        db_session.add(categoria_model)
+        await db_session.commit()
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_303_SEE_OTHER,
+            detail=f'Já existe uma categoria com esse nome: {categoria_in.nome}'
+        )
 
     return categoria_out
 

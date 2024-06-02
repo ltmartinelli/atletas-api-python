@@ -1,6 +1,8 @@
 from uuid import uuid4
 from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import UUID4
+from sqlalchemy.exc import IntegrityError
+
 from centro_treinamento.schemas import CentroTreinamentoIn, CentroTreinamentoOut
 from centro_treinamento.models import CentroTreinamentoModel
 
@@ -20,11 +22,17 @@ async def post(
         db_session: DatabaseDependency,
         centro_treinamento_in: CentroTreinamentoIn = Body(...)
 ) -> CentroTreinamentoOut:
-    centro_treinamento_out = CentroTreinamentoOut(id=uuid4(), **centro_treinamento_in.model_dump())
-    centro_treinamento_model = CentroTreinamentoModel(**centro_treinamento_out.model_dump())
+    try:
+        centro_treinamento_out = CentroTreinamentoOut(id=uuid4(), **centro_treinamento_in.model_dump())
+        centro_treinamento_model = CentroTreinamentoModel(**centro_treinamento_out.model_dump())
 
-    db_session.add(centro_treinamento_model)
-    await db_session.commit()
+        db_session.add(centro_treinamento_model)
+        await db_session.commit()
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_303_SEE_OTHER,
+            detail=f'Já existe um centro com esse nome: {centro_treinamento_in.nome}'
+        )
 
     return centro_treinamento_out
 
