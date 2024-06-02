@@ -3,13 +3,14 @@ from uuid import uuid4
 from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import UUID4
 
-from atleta.schemas import AtletaIn, AtletaOut, AtletaUpdate
+from atleta.schemas import AtletaIn, AtletaOut, AtletaUpdate, AtletaOutMin
 from atleta.models import AtletaModel
 from categorias.models import CategoriaModel
 from centro_treinamento.models import CentroTreinamentoModel
 
 from contrib.repository.dependencies import DatabaseDependency
 from sqlalchemy.future import select
+from fastapi_pagination import Page, paginate
 
 router = APIRouter()
 
@@ -68,12 +69,11 @@ async def post(
     '/',
     summary='Consultar todos os Atletas',
     status_code=status.HTTP_200_OK,
-    response_model=list[AtletaOut],
+    response_model=Page[AtletaOutMin],
 )
-async def query(db_session: DatabaseDependency) -> list[AtletaOut]:
-    atletas: list[AtletaOut] = (await db_session.execute(select(AtletaModel))).scalars().all()
-
-    return [AtletaOut.model_validate(atleta) for atleta in atletas]
+async def query(db_session: DatabaseDependency) -> Page[AtletaOutMin]:
+    atletas: list[AtletaOutMin] = (await db_session.execute(select(AtletaModel))).scalars().all()
+    return paginate([AtletaOutMin.model_validate(atleta) for atleta in atletas])
 
 
 @router.get(
