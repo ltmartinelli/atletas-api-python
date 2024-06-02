@@ -71,8 +71,16 @@ async def post(
     status_code=status.HTTP_200_OK,
     response_model=LimitOffsetPage[AtletaOutMin],
 )
-async def query(db_session: DatabaseDependency) -> LimitOffsetPage[AtletaOutMin]:
-    atletas: list[AtletaOutMin] = (await db_session.execute(select(AtletaModel))).scalars().all()
+async def query(db_session: DatabaseDependency, cpf: str = "", nome: str = "") -> LimitOffsetPage[AtletaOutMin]:
+    query = select(AtletaModel)
+
+    if cpf:
+        query = query.filter(AtletaModel.cpf == cpf)
+    if nome:
+        query = query.filter(AtletaModel.nome.contains(nome))
+
+    atletas: list[AtletaOutMin] = (await db_session.execute(query)).scalars().all()
+
     return paginate([AtletaOutMin.model_validate(atleta) for atleta in atletas])
 
 
