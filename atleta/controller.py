@@ -10,7 +10,7 @@ from centro_treinamento.models import CentroTreinamentoModel
 
 from contrib.repository.dependencies import DatabaseDependency
 from sqlalchemy.future import select
-from fastapi_pagination import Page, paginate
+from fastapi_pagination import LimitOffsetPage, paginate
 
 router = APIRouter()
 
@@ -69,9 +69,9 @@ async def post(
     '/',
     summary='Consultar todos os Atletas',
     status_code=status.HTTP_200_OK,
-    response_model=Page[AtletaOutMin],
+    response_model=LimitOffsetPage[AtletaOutMin],
 )
-async def query(db_session: DatabaseDependency) -> Page[AtletaOutMin]:
+async def query(db_session: DatabaseDependency) -> LimitOffsetPage[AtletaOutMin]:
     atletas: list[AtletaOutMin] = (await db_session.execute(select(AtletaModel))).scalars().all()
     return paginate([AtletaOutMin.model_validate(atleta) for atleta in atletas])
 
